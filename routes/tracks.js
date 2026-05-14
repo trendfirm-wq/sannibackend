@@ -752,4 +752,35 @@ router.get('/public/:id', async (req, res) => {
     });
   }
 });
+// ===================================================
+// PUBLIC SHARE DETAILS
+// ===================================================
+router.get('/share/:id', async (req, res) => {
+  try {
+    const track = await Track.findById(req.params.id).populate('artist', 'name');
+
+    if (!track) {
+      return res.status(404).json({ message: 'Track not found' });
+    }
+
+    const type = track.type === 'video' ? 'video' : 'track';
+
+    return res.json({
+      success: true,
+      id: track._id,
+      title: track.title,
+      artist: track.artist?.name || track.artist_name || 'Unknown Artist',
+      cover_image: track.cover_image,
+      type: track.type,
+      is_premium: track.is_premium,
+      share_url: `${process.env.BASE_URL}/api/tracks/share/${track._id}`,
+      app_link: `saani://${type}/${track._id}`,
+      play_store_url: 'https://play.google.com/store/apps/details?id=com.trendingpapa.saani',
+      message: `Listen to "${track.title}" on Sanni. Sanni is now live on Google Play.`,
+    });
+  } catch (err) {
+    console.error('SHARE DETAILS ERROR:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
 module.exports = router;
