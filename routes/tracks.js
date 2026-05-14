@@ -765,22 +765,34 @@ router.get('/share/:id', async (req, res) => {
 
     const type = track.type === 'video' ? 'video' : 'track';
 
+    const artistName =
+      track.artist && track.artist.name
+        ? track.artist.name
+        : 'Sanni';
+
+    const baseUrl =
+      process.env.BASE_URL || 'https://sannibackend.onrender.com';
+
     return res.json({
       success: true,
       id: track._id,
-      title: track.title,
-      artist: track.artist?.name || track.artist_name || 'Unknown Artist',
-      cover_image: track.cover_image,
-      type: track.type,
-      is_premium: track.is_premium,
-      share_url: `${process.env.BASE_URL}/api/tracks/share/${track._id}`,
+      title: track.title || 'Untitled',
+      artist: artistName,
+      cover_image: track.cover_image || '',
+      type: track.type || 'audio',
+      is_premium: !!track.is_premium,
+      share_url: `${baseUrl}/api/tracks/share/${track._id}`,
       app_link: `saani://${type}/${track._id}`,
-      play_store_url: 'https://play.google.com/store/apps/details?id=com.trendingpapa.saani',
-      message: `Listen to "${track.title}" on Sanni. Sanni is now live on Google Play.`,
+      play_store_url:
+        'https://play.google.com/store/apps/details?id=com.trendingpapa.saani',
+      message: `Listen to "${track.title || 'this track'}" on Sanni. Sanni is now live on Google Play.`,
     });
   } catch (err) {
-    console.error('SHARE DETAILS ERROR:', err);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('SHARE DETAILS ERROR:', err.message);
+    return res.status(500).json({
+      message: 'Server error',
+      error: err.message,
+    });
   }
 });
 module.exports = router;
