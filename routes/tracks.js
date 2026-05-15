@@ -757,38 +757,49 @@ router.get('/public/:id', async (req, res) => {
 // ===================================================
 router.get('/share/:id', async (req, res) => {
   try {
-    const track = await Track.findById(req.params.id).populate('artist', 'name');
+    const track = await Track.findById(req.params.id)
+      .populate('artist', 'name');
 
     if (!track) {
-      return res.status(404).json({ message: 'Track not found' });
+      return res.status(404).json({
+        message: 'Track not found',
+      });
     }
 
-    const type = track.type === 'video' ? 'video' : 'track';
-
     const artistName =
-      track.artist && track.artist.name
-        ? track.artist.name
-        : 'Sanni';
-
-    const baseUrl =
-      process.env.BASE_URL || 'https://sannibackend.onrender.com';
+      track.artist?.name || 'Sanni';
 
     return res.json({
       success: true,
+
       id: track._id,
+
       title: track.title || 'Untitled',
+
       artist: artistName,
+
       cover_image: track.cover_image || '',
+
       type: track.type || 'audio',
+
       is_premium: !!track.is_premium,
-      share_url: `${baseUrl}/api/tracks/share/${track._id}`,
-      app_link: `saani://${type}/${track._id}`,
+
+      // ✅ WEB SHARE PAGE
+      share_url: `https://saani-web.netlify.app/track/${track._id}`,
+
+      // ✅ APP DEEP LINK
+      app_link: `saani://track/${track._id}`,
+
+      // ✅ PLAY STORE
       play_store_url:
         'https://play.google.com/store/apps/details?id=com.trendingpapa.saani',
-      message: `Listen to "${track.title || 'this track'}" on Sanni. Sanni is now live on Google Play.`,
+
+      message: `Listen to "${track.title}" on Sanni.`,
     });
+
   } catch (err) {
     console.error('SHARE DETAILS ERROR:', err.message);
+
     return res.status(500).json({
       message: 'Server error',
       error: err.message,
