@@ -13,6 +13,7 @@ const Stream = require('../models/Stream');
 const { requestToPay, checkPayment } = require('../utils/momo');
 const { initializePayment, verifyPayment } = require('../utils/paystack');
 const crypto = require('crypto');
+const { sendPushNotification } = require('../utils/notificationService');
  
 dotenv.config();
 
@@ -152,6 +153,24 @@ normalizedCategory = normalizedCategory
     });
 
     await track.save();
+    const usersWithTokens = await User.find({
+  expoPushToken: { $ne: null },
+  notifications_enabled: true,
+}).select('expoPushToken');
+
+const tokens = usersWithTokens.map(user => user.expoPushToken);
+
+if (tokens.length > 0) {
+  await sendPushNotification({
+    tokens,
+    title: finalType === 'video' ? 'New video on Sanni 🎬' : 'New song on Sanni 🎧',
+    body: `${title} is now available. Tap to listen.`,
+    data: {
+      type: finalType === 'video' ? 'video' : 'track',
+      trackId: track._id.toString(),
+    },
+  });
+}
 
     res.status(201).json({
       message: 'Track uploaded successfully!',

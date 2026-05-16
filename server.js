@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const createAdmin = require('./utils/createAdmin');
+const notificationRoutes = require('./routes/notifications');
 
 dotenv.config();
 
@@ -53,6 +54,7 @@ app.use('/api/tracks', coverUpload);
 app.use('/api/tracks', uploadRoutes);
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/hubtel', hubtelRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 const PORT = process.env.PORT || 5000;
 

@@ -78,7 +78,18 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+// =========================
+// PUSH NOTIFICATIONS
+// =========================
+expoPushToken: {
+  type: String,
+  default: null,
+},
 
+notifications_enabled: {
+  type: Boolean,
+  default: true,
+},
     // =========================
     // PASSWORD RESET
     // =========================
