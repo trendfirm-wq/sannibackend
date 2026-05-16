@@ -743,7 +743,7 @@ router.get('/public/:id', async (req, res) => {
       cover_image: track.cover_image,
       type: track.type,
       is_premium: track.is_premium,
-      share_url: `https://sanni.app/track/${track._id}`,
+      share_url: `https://sanni-share.netlify.app/track/${track._id}`,
     });
   } catch (err) {
     console.error(err);
@@ -785,7 +785,7 @@ router.get('/share/:id', async (req, res) => {
       is_premium: !!track.is_premium,
 
       // ✅ WEB SHARE PAGE
-      share_url: `https://saani-web.netlify.app/track/${track._id}`,
+      share_url: `https://sanni-share.netlify.app/track/${track._id}`,
 
       // ✅ APP DEEP LINK
       app_link: `saani://track/${track._id}`,
