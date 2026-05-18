@@ -5,23 +5,41 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { sendPushNotification } = require('../utils/notificationService');
 
-// Save user device token
 router.post('/save-token', auth, async (req, res) => {
   try {
-    const { expoPushToken } = req.body;
+    const { expoPushToken, deviceType, appOwnership } = req.body;
 
     if (!expoPushToken) {
       return res.status(400).json({ message: 'Expo push token is required' });
     }
 
+    // Remove this same token from other users first
+    await User.updateMany(
+      { expoPushToken },
+      {
+        $unset: {
+          expoPushToken: '',
+        },
+      }
+    );
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
       {
         expoPushToken,
+        pushDeviceType: deviceType || 'unknown',
+        pushAppOwnership: appOwnership || 'unknown',
         notifications_enabled: true,
       },
       { new: true }
     ).select('-password');
+
+    console.log('PUSH TOKEN SAVED:', {
+      userId: req.user.id,
+      expoPushToken,
+      deviceType,
+      appOwnership,
+    });
 
     return res.json({
       success: true,
@@ -33,7 +51,6 @@ router.post('/save-token', auth, async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 });
-
 // Admin send notification to all users
 router.post('/send-all', auth, async (req, res) => {
   try {
@@ -47,12 +64,14 @@ router.post('/send-all', auth, async (req, res) => {
       return res.status(400).json({ message: 'Title and body are required' });
     }
 
-    const users = await User.find({
-      expoPushToken: { $ne: null },
-      notifications_enabled: true,
-    }).select('expoPushToken');
+   const users = await User.find({
+  expoPushToken: { $exists: true, $ne: null },
+  notifications_enabled: true,
+}).select('expoPushToken pushAppOwnership');
 
-    const tokens = users.map(user => user.expoPushToken);
+const tokens = users
+  .map(user => user.expoPushToken)
+  .filter(Boolean);
 
     await sendPushNotification({
       tokens,

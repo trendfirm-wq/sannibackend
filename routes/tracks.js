@@ -153,6 +153,7 @@ normalizedCategory = normalizedCategory
     });
 
     await track.save();
+    
     const usersWithTokens = await User.find({
   expoPushToken: { $ne: null },
   notifications_enabled: true,
