@@ -2,6 +2,8 @@ const { Expo } = require('expo-server-sdk');
 
 const expo = new Expo();
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function sendPushNotification({ tokens = [], title, body, data = {} }) {
   try {
     const messages = [];
@@ -34,13 +36,49 @@ async function sendPushNotification({ tokens = [], title, body, data = {} }) {
     }
 
     const chunks = expo.chunkPushNotifications(messages);
+    const receiptIds = [];
 
     for (const chunk of chunks) {
       try {
         const tickets = await expo.sendPushNotificationsAsync(chunk);
         console.log('PUSH TICKETS:', tickets);
+
+        for (const ticket of tickets) {
+          if (ticket.status === 'ok' && ticket.id) {
+            receiptIds.push(ticket.id);
+          } else {
+            console.error('PUSH TICKET ERROR:', ticket);
+          }
+        }
       } catch (error) {
         console.error('PUSH SEND ERROR:', error);
+      }
+    }
+
+    if (receiptIds.length === 0) return;
+
+    await wait(5000);
+
+    const receiptIdChunks = expo.chunkPushNotificationReceiptIds(receiptIds);
+
+    for (const chunk of receiptIdChunks) {
+      try {
+        const receipts = await expo.getPushNotificationReceiptsAsync(chunk);
+        console.log('PUSH RECEIPTS:', JSON.stringify(receipts, null, 2));
+
+        for (const receiptId in receipts) {
+          const receipt = receipts[receiptId];
+
+          if (receipt.status === 'error') {
+            console.error('PUSH RECEIPT ERROR:', {
+              receiptId,
+              message: receipt.message,
+              details: receipt.details,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('PUSH RECEIPT CHECK ERROR:', error);
       }
     }
   } catch (err) {
