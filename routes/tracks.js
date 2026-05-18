@@ -756,15 +756,22 @@ router.get('/public/:id', async (req, res) => {
       });
     }
 
-    res.json({
-      id: track._id,
-      title: track.title,
-      artist: track.artist?.name || 'Unknown Artist',
-      cover_image: track.cover_image,
-      type: track.type,
-      is_premium: track.is_premium,
-      share_url: `https://sanni-share.netlify.app/track/${track._id}`,
-    });
+ res.json({
+  id: track._id,
+  _id: track._id,
+  title: track.title,
+  artist: track.artist,
+  artist_name: track.artist?.name || 'Unknown Artist',
+  cover_image: track.cover_image,
+  type: track.type,
+  is_premium: track.is_premium,
+
+  file_path: track.file_path,
+  audio_url: track.file_path,
+  video_url: track.video_url,
+
+  share_url: `https://sanni-share.netlify.app/track/${track._id}`,
+});
   } catch (err) {
     console.error(err);
     res.status(500).json({
