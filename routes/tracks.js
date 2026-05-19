@@ -14,6 +14,7 @@ const { requestToPay, checkPayment } = require('../utils/momo');
 const { initializePayment, verifyPayment } = require('../utils/paystack');
 const crypto = require('crypto');
 const { sendPushNotification } = require('../utils/notificationService');
+const Notification = require('../models/Notification');
  
 dotenv.config();
 
@@ -157,7 +158,7 @@ normalizedCategory = normalizedCategory
     const usersWithTokens = await User.find({
   expoPushToken: { $ne: null },
   notifications_enabled: true,
-}).select('expoPushToken');
+}).select('_id expoPushToken');
 
 const tokens = usersWithTokens.map(user => user.expoPushToken);
 
@@ -171,6 +172,19 @@ if (tokens.length > 0) {
       trackId: track._id.toString(),
     },
   });
+  await Notification.create({
+  title: finalType === 'video' ? 'New video on Sanni 🎬' : 'New song on Sanni 🎧',
+  body: `${title} is now available. Tap to listen.`,
+  type: finalType === 'video' ? 'video' : 'track',
+  data: {
+    type: finalType === 'video' ? 'video' : 'track',
+    trackId: track._id.toString(),
+  },
+  recipients: usersWithTokens.map(user => ({
+    user: user._id,
+    read: false,
+  })),
+});
 }
 
     res.status(201).json({
