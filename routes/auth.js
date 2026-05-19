@@ -7,7 +7,8 @@ const dotenv = require('dotenv');
 const auth = require('../middleware/auth');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-
+const { OAuth2Client } = require('google-auth-library');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 dotenv.config();
 // ==============================
 // EMAIL TRANSPORTER
@@ -428,5 +429,66 @@ router.get('/me', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+// ===== GOOGLE LOGIN =====
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
 
+    if (!credential) {
+      return res.status(400).json({ message: 'Google credential is required.' });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({ message: 'Invalid Google account.' });
+    }
+
+    const normalizedEmail = payload.email.trim().toLowerCase();
+
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+      user = new User({
+        full_name: payload.name || normalizedEmail.split('@')[0],
+        email: normalizedEmail,
+        phone: '',
+        password: hashedPassword,
+      });
+
+      await user.save();
+    }
+
+    const token = generateToken(user);
+
+    return res.json({
+      message: 'Google login successful!',
+      token,
+      user: {
+        id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        subscription_status: user.subscription_status,
+        plan_type: user.plan_type,
+        subscription_start: user.subscription_start,
+        subscription_expiry: user.subscription_expiry,
+        cancel_at_expiry: user.cancel_at_expiry,
+      },
+    });
+  } catch (error) {
+    console.error('GOOGLE LOGIN ERROR:', error);
+    return res.status(500).json({ message: 'Google login failed.' });
+  }
+});
 module.exports = router;
