@@ -438,10 +438,13 @@ router.post('/google', async (req, res) => {
       return res.status(400).json({ message: 'Google credential is required.' });
     }
 
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+   const ticket = await googleClient.verifyIdToken({
+  idToken: credential,
+  audience: [
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_ANDROID_CLIENT_ID,
+  ],
+});
 
     const payload = ticket.getPayload();
 
