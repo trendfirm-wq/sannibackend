@@ -386,7 +386,11 @@ router.post('/forgot-password', async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
-
+if (user && user.auth_provider === 'google') {
+  return res.status(400).json({
+    message: 'This account uses Google sign-in. Please continue with Google.',
+  });
+}
     // Always return same response
     if (!user) {
       return res.json({
