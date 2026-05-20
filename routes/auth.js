@@ -455,6 +455,12 @@ router.post('/google', async (req, res) => {
     const normalizedEmail = payload.email.trim().toLowerCase();
 
     let user = await User.findOne({ email: normalizedEmail });
+    if (user) {
+  user.auth_provider = 'google';
+  user.google_id = payload.sub;
+  user.email_verified = true;
+  await user.save();
+}
 
     if (!user) {
       const randomPassword = crypto.randomBytes(32).toString('hex');
