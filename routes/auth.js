@@ -461,13 +461,15 @@ router.post('/google', async (req, res) => {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(randomPassword, salt);
 
-      user = new User({
-        full_name: payload.name || normalizedEmail.split('@')[0],
-        email: normalizedEmail,
-        phone: '',
-        password: hashedPassword,
-      });
-
+   user = new User({
+  full_name: payload.name || normalizedEmail.split('@')[0],
+  email: normalizedEmail,
+  phone: '',
+  password: hashedPassword,
+  auth_provider: 'google',
+  google_id: payload.sub,
+  email_verified: true,
+});
       await user.save();
     }
 
@@ -482,6 +484,8 @@ router.post('/google', async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        auth_provider: user.auth_provider,
+        email_verified: user.email_verified,
         subscription_status: user.subscription_status,
         plan_type: user.plan_type,
         subscription_start: user.subscription_start,

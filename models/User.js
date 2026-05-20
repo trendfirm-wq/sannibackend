@@ -15,7 +15,21 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
+  auth_provider: {
+  type: String,
+  enum: ['local', 'google'],
+  default: 'local',
+},
 
+google_id: {
+  type: String,
+  default: null,
+},
+
+email_verified: {
+  type: Boolean,
+  default: false,
+},
     // =========================
     // SUBSCRIPTION SYSTEM
     // =========================
@@ -78,6 +92,7 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+  
 // =========================
 // PUSH NOTIFICATIONS
 // =========================
