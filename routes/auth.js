@@ -500,55 +500,53 @@ router.get('/me', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-// ===== GOOGLE LOGIN =====
-router.post('/google', async (req, res) => {
+// ===== GOOGLE LOGIN ONLY =====
+router.post('/google-login', async (req, res) => {
   try {
     const { credential } = req.body;
 
     if (!credential) {
-      return res.status(400).json({ message: 'Google credential is required.' });
+      return res.status(400).json({
+        message: 'Google credential is required.',
+      });
     }
 
-   const ticket = await googleClient.verifyIdToken({
-  idToken: credential,
-  audience: [
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_ANDROID_CLIENT_ID,
-  ],
-});
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: [
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_ANDROID_CLIENT_ID,
+      ],
+    });
 
     const payload = ticket.getPayload();
 
     if (!payload || !payload.email) {
-      return res.status(400).json({ message: 'Invalid Google account.' });
+      return res.status(400).json({
+        message: 'Invalid Google account.',
+      });
+    }
+
+    if (!payload.email_verified) {
+      return res.status(400).json({
+        message: 'Google email is not verified.',
+      });
     }
 
     const normalizedEmail = payload.email.trim().toLowerCase();
 
-    let user = await User.findOne({ email: normalizedEmail });
-    if (user) {
-  user.auth_provider = 'google';
-  user.google_id = payload.sub;
-  user.email_verified = true;
-  await user.save();
-}
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
-      const randomPassword = crypto.randomBytes(32).toString('hex');
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(randomPassword, salt);
-
-   user = new User({
-  full_name: payload.name || normalizedEmail.split('@')[0],
-  email: normalizedEmail,
-  phone: '',
-  password: hashedPassword,
-  auth_provider: 'google',
-  google_id: payload.sub,
-  email_verified: true,
-});
-      await user.save();
+      return res.status(404).json({
+        message: 'No account found. Please create an account first.',
+      });
     }
+
+    user.auth_provider = 'google';
+    user.google_id = payload.sub;
+    user.email_verified = true;
+    await user.save();
 
     const token = generateToken(user);
 
@@ -572,7 +570,95 @@ router.post('/google', async (req, res) => {
     });
   } catch (error) {
     console.error('GOOGLE LOGIN ERROR:', error);
-    return res.status(500).json({ message: 'Google login failed.' });
+    return res.status(500).json({
+      message: 'Google login failed.',
+    });
+  }
+});
+// ===== GOOGLE REGISTER ONLY =====
+router.post('/google-register', async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        message: 'Google credential is required.',
+      });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: [
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_ANDROID_CLIENT_ID,
+      ],
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({
+        message: 'Invalid Google account.',
+      });
+    }
+
+    if (!payload.email_verified) {
+      return res.status(400).json({
+        message: 'Google email is not verified.',
+      });
+    }
+
+    const normalizedEmail = payload.email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: 'Account already exists. Please login instead.',
+      });
+    }
+
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+    const user = new User({
+      full_name: payload.name || normalizedEmail.split('@')[0],
+      email: normalizedEmail,
+      phone: '',
+      password: hashedPassword,
+      auth_provider: 'google',
+      google_id: payload.sub,
+      email_verified: true,
+    });
+
+    await user.save();
+
+    const token = generateToken(user);
+
+    return res.status(201).json({
+      message: 'Google account created successfully!',
+      token,
+      user: {
+        id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        auth_provider: user.auth_provider,
+        email_verified: user.email_verified,
+        subscription_status: user.subscription_status,
+        plan_type: user.plan_type,
+        subscription_start: user.subscription_start,
+        subscription_expiry: user.subscription_expiry,
+        cancel_at_expiry: user.cancel_at_expiry,
+      },
+    });
+  } catch (error) {
+    console.error('GOOGLE REGISTER ERROR:', error);
+    return res.status(500).json({
+      message: 'Google registration failed.',
+    });
   }
 });
 module.exports = router;
