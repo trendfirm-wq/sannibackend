@@ -191,7 +191,13 @@ if (cleanNewPassword.length < 6) {
 }
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
+  
 
+  if (user.auth_provider === 'google') {
+  return res.status(403).json({
+    message: 'Google accounts cannot change password here.',
+  });
+}
    const isMatch = await bcrypt.compare(cleanCurrentPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Current password incorrect' });
