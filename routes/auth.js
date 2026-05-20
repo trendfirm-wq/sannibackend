@@ -228,18 +228,79 @@ router.put('/update-profile', auth, async (req, res) => {
     const trimmedName = full_name.trim();
     const normalizedEmail = email.trim().toLowerCase();
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
-      return res.status(400).json({
-        message: 'Please enter a valid email address',
-      });
-    }
+ const emailRegex =
+  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|net|org|edu|gov|co|io|app)$/;
+
+if (!emailRegex.test(normalizedEmail)) {
+  return res.status(400).json({
+    message: 'Please enter a valid email address with a valid domain',
+  });
+}
+
+const commonEmailMistakes = [
+  // Gmail
+  'gmail.co',
+  'gmail.coma',
+  'gmail.con',
+  'gmail.comm',
+  'gmail.cm',
+  'gmai.com',
+  'gmial.com',
+  'gmal.com',
+  'gnail.com',
+  'gmaill.com',
+
+  // Yahoo
+  'yahoo.co',
+  'yahoo.coma',
+  'yahoo.con',
+  'yahoo.cm',
+  'yaho.com',
+  'yaoo.com',
+  'yahho.com',
+
+  // Outlook / Hotmail
+  'outlook.co',
+  'outlook.coma',
+  'outlook.con',
+  'outlook.cm',
+  'outlok.com',
+  'hotmai.com',
+  'hotmail.co',
+  'hotmail.coma',
+  'hotmail.con',
+  'hotmail.cm',
+
+  // iCloud
+  'icloud.co',
+  'icloud.coma',
+  'icloud.con',
+  'iclod.com',
+  'icoud.com',
+
+  // Live
+  'live.co',
+  'live.coma',
+  'live.con',
+  'live.cm',
+];
+const emailDomain = normalizedEmail.split('@')[1];
+
+if (commonEmailMistakes.includes(emailDomain)) {
+  return res.status(400).json({
+    message: 'Please check your email address. Did you mean gmail.com?',
+  });
+}
 
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
+if (user.auth_provider === 'google' && normalizedEmail !== user.email) {
+  return res.status(403).json({
+    message: 'Google account email cannot be changed.',
+  });
+} 
     const LIMIT = 3;
     const WINDOW_DAYS = 30;
     const now = new Date();
