@@ -152,29 +152,6 @@ router.get('/unread-count', auth, async (req, res) => {
   }
 });
 
-// Mark one notification as read
-router.patch('/:id/read', auth, async (req, res) => {
-  try {
-    await Notification.updateOne(
-      {
-        _id: req.params.id,
-        'recipients.user': req.user.id,
-      },
-      {
-        $set: {
-          'recipients.$.read': true,
-          'recipients.$.readAt': new Date(),
-        },
-      }
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('MARK READ ERROR:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // Mark all my notifications as read
 router.patch('/mark-all/read', auth, async (req, res) => {
   try {
@@ -201,6 +178,52 @@ router.patch('/mark-all/read', auth, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('MARK ALL READ ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+// Mark one notification as read
+router.patch('/:id/read', auth, async (req, res) => {
+  try {
+    await Notification.updateOne(
+      {
+        _id: req.params.id,
+        'recipients.user': req.user.id,
+      },
+      {
+        $set: {
+          'recipients.$.read': true,
+          'recipients.$.readAt': new Date(),
+        },
+      }
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('MARK READ ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+// Delete one notification for current user
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const result = await Notification.updateOne(
+      { _id: req.params.id },
+      {
+        $pull: {
+          recipients: {
+            user: req.user.id,
+          },
+        },
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE NOTIFICATION ERROR:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
