@@ -890,4 +890,36 @@ router.get('/share/:id', async (req, res) => {
     });
   }
 });
+router.get('/search', async (req, res) => {
+  try {
+    const q = req.query.q?.trim();
+    const limit = Math.min(Number(req.query.limit) || 20, 30);
+
+    if (!q) {
+      return res.json({
+        results: [],
+      });
+    }
+
+    const results = await Track.find({
+      $or: [
+        { title: { $regex: q, $options: 'i' } },
+        { artist_name: { $regex: q, $options: 'i' } },
+        { category: { $regex: q, $options: 'i' } },
+      ],
+    })
+      .populate('artist', 'name')
+      .sort({ uploaded_at: -1 })
+      .limit(limit);
+
+    res.json({
+      results,
+    });
+  } catch (err) {
+    console.error('SEARCH ERROR:', err);
+    res.status(500).json({
+      error: 'Search failed',
+    });
+  }
+});
 module.exports = router;
