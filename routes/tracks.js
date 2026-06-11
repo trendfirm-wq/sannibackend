@@ -901,20 +901,52 @@ router.get('/search', async (req, res) => {
       });
     }
 
-    const results = await Track.find({
-      $or: [
-        { title: { $regex: q, $options: 'i' } },
-        { artist_name: { $regex: q, $options: 'i' } },
-        { category: { $regex: q, $options: 'i' } },
-      ],
-    })
-      .populate('artist', 'name')
-      .sort({ uploaded_at: -1 })
-      .limit(limit);
+const results = await Track.find({
+  $or: [
+    {
+      title: {
+        $regex: q,
+        $options: 'i',
+      },
+    },
 
-    res.json({
-      results,
-    });
+    {
+      category: {
+        $regex: q,
+        $options: 'i',
+      },
+    },
+  ],
+})
+.populate({
+  path: 'artist',
+  match: {
+    name: {
+      $regex: q,
+      $options: 'i',
+    },
+  },
+  select: 'name',
+})
+.sort({
+  total_streams: -1,
+  uploaded_at: -1,
+})
+.limit(limit);
+
+const filtered =
+results.filter(
+t =>
+t.artist ||
+t.title
+?.toLowerCase()
+.includes(
+q.toLowerCase()
+)
+);
+   res.json({
+  results: filtered,
+});
   } catch (err) {
     console.error('SEARCH ERROR:', err);
     res.status(500).json({
