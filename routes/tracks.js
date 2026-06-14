@@ -472,12 +472,7 @@ router.get('/all', async (req, res) => {
 
     const [tracks, total] =
       await Promise.all([
-       Track.find({
-  $or: [
-    { type: 'video' },
-    { video_url: { $ne: '' } }
-  ]
-})
+        Track.find()
           .populate(
             'artist',
             'name'
@@ -898,104 +893,65 @@ router.get('/share/:id', async (req, res) => {
 router.get('/search', async (req, res) => {
   try {
     const q = req.query.q?.trim();
-    const type = req.query.type; // 👈 ADD THIS (video/audio/all)
     const limit = Math.min(Number(req.query.limit) || 20, 30);
 
     if (!q) {
-      return res.json({ results: [] });
+      return res.json({
+        results: [],
+      });
     }
 
-    const query = {
-      $and: [
-        {
-          $or: [
-            { title: { $regex: q, $options: 'i' } },
-            { category: { $regex: q, $options: 'i' } }
-          ]
-        }
-      ]
-    };
+const results = await Track.find({
+  $or: [
+    {
+      title: {
+        $regex: q,
+        $options: 'i',
+      },
+    },
 
-    // 👇 ADD TYPE FILTER (THIS IS THE FIX)
-    if (type === 'video') {
-      query.$and.push({ type: 'video' });
-    } 
-    else if (type === 'audio') {
-      query.$and.push({ type: 'audio' });
-    }
+    {
+      category: {
+        $regex: q,
+        $options: 'i',
+      },
+    },
+  ],
+})
+.populate({
+  path: 'artist',
+  match: {
+    name: {
+      $regex: q,
+      $options: 'i',
+    },
+  },
+  select: 'name',
+})
+.sort({
+  total_streams: -1,
+  uploaded_at: -1,
+})
+.limit(limit);
 
-    const results = await Track.find(query)
-      .populate({
-        path: 'artist',
-        select: 'name'
-      })
-      .sort({
-        total_streams: -1,
-        uploaded_at: -1
-      })
-      .limit(limit);
-
-    res.json({ results });
-
+const filtered =
+results.filter(
+t =>
+t.artist ||
+t.title
+?.toLowerCase()
+.includes(
+q.toLowerCase()
+)
+);
+   res.json({
+  results: filtered,
+});
   } catch (err) {
     console.error('SEARCH ERROR:', err);
-    res.status(500).json({ error: 'Search failed' });
+    res.status(500).json({
+      error: 'Search failed',
+    });
   }
-});
-router.get('/trending', async (req, res) => {
-  try {
-    const limit = Number(req.query.limit) || 10;
-
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const trending = await Stream.aggregate([
-      {
-        $match: {
-          created_at: { $gte: sevenDaysAgo }
-        }
-      },
-      {
-        $group: {
-          _id: "$track",
-          score: { $sum: "$duration" }
-        }
-      },
-      { $sort: { score: -1 } },
-      { $limit: limit },
-      {
-        $lookup: {
-          from: "tracks",
-          localField: "_id",
-          foreignField: "_id",
-          as: "track"
-        }
-      },
-      { $unwind: "$track" }
-    ]);
-
-    res.json({ tracks: trending.map(t => t.track) });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Trending failed' });
-  }
-});
-router.get('/all', async (req, res) => {
-  const tracks = await Track.find()
-    .populate('artist');
-
-  console.log('TRACK COUNT:', tracks.length);
-
-  const audioTracks = tracks.filter(
-    t => t.type === 'audio'
-  );
-
-  console.log(
-    'AUDIO COUNT:',
-    audioTracks.length
-  );
-
-  res.json(tracks);
 });
 module.exports = router;
