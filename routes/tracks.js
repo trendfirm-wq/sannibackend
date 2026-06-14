@@ -981,4 +981,21 @@ router.get('/trending', async (req, res) => {
     res.status(500).json({ error: 'Trending failed' });
   }
 });
+router.get('/all', async (req, res) => {
+  const tracks = await Track.find()
+    .populate('artist');
+
+  console.log('TRACK COUNT:', tracks.length);
+
+  const audioTracks = tracks.filter(
+    t => t.type === 'audio'
+  );
+
+  console.log(
+    'AUDIO COUNT:',
+    audioTracks.length
+  );
+
+  res.json(tracks);
+});
 module.exports = router;
