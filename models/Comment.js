@@ -3,33 +3,25 @@ const mongoose = require('mongoose');
 const CommentSchema = new mongoose.Schema(
   {
     trackId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Track',
+      type: String,
       required: true,
+      index: true,
     },
-
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
       required: true,
     },
-
     userName: {
       type: String,
-      required: true,
-      trim: true,
+      default: 'User',
     },
-
-    comment: {
+    text: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 500,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model('Comment', CommentSchema);
