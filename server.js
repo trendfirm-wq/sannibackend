@@ -16,7 +16,7 @@ const uploadRoutes = require('./routes/upload');
 const playlistRoutes = require('./routes/playlists');
 const hubtelRoutes = require('./routes/hubtel');
 const app = express();
-
+const commentRoutes = require('./routes/commentRoutes');
 // Middleware
 app.use(cors());
 
@@ -55,7 +55,7 @@ app.use('/api/tracks', uploadRoutes);
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/hubtel', hubtelRoutes);
 app.use('/api/notifications', notificationRoutes);
-
+app.use('/api/comments', commentRoutes);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', async () => {
