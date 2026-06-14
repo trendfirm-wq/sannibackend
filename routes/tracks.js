@@ -463,23 +463,14 @@ router.get('/all', async (req, res) => {
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const skip = (page - 1) * limit;
 
-    // OPTIONAL FILTER (audio | video | all)
-    const type = req.query.type; // 👈 important
-
-    const query = {};
-
-    if (type === 'audio' || type === 'video') {
-      query.type = type;
-    }
-
     const [tracks, total] = await Promise.all([
-      Track.find(query)
+      Track.find({})
         .populate('artist', 'name')
         .sort({ uploaded_at: -1 })
         .skip(skip)
         .limit(limit),
 
-      Track.countDocuments(query),
+      Track.countDocuments(),
     ]);
 
     res.json({
