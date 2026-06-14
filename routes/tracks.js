@@ -472,7 +472,12 @@ router.get('/all', async (req, res) => {
 
     const [tracks, total] =
       await Promise.all([
-        Track.find()
+       Track.find({
+  $or: [
+    { type: 'video' },
+    { video_url: { $ne: '' } }
+  ]
+})
           .populate(
             'artist',
             'name'
@@ -893,65 +898,48 @@ router.get('/share/:id', async (req, res) => {
 router.get('/search', async (req, res) => {
   try {
     const q = req.query.q?.trim();
+    const type = req.query.type; // 👈 ADD THIS (video/audio/all)
     const limit = Math.min(Number(req.query.limit) || 20, 30);
 
     if (!q) {
-      return res.json({
-        results: [],
-      });
+      return res.json({ results: [] });
     }
 
-const results = await Track.find({
-  $or: [
-    {
-      title: {
-        $regex: q,
-        $options: 'i',
-      },
-    },
+    const query = {
+      $and: [
+        {
+          $or: [
+            { title: { $regex: q, $options: 'i' } },
+            { category: { $regex: q, $options: 'i' } }
+          ]
+        }
+      ]
+    };
 
-    {
-      category: {
-        $regex: q,
-        $options: 'i',
-      },
-    },
-  ],
-})
-.populate({
-  path: 'artist',
-  match: {
-    name: {
-      $regex: q,
-      $options: 'i',
-    },
-  },
-  select: 'name',
-})
-.sort({
-  total_streams: -1,
-  uploaded_at: -1,
-})
-.limit(limit);
+    // 👇 ADD TYPE FILTER (THIS IS THE FIX)
+    if (type === 'video') {
+      query.$and.push({ type: 'video' });
+    } 
+    else if (type === 'audio') {
+      query.$and.push({ type: 'audio' });
+    }
 
-const filtered =
-results.filter(
-t =>
-t.artist ||
-t.title
-?.toLowerCase()
-.includes(
-q.toLowerCase()
-)
-);
-   res.json({
-  results: filtered,
-});
+    const results = await Track.find(query)
+      .populate({
+        path: 'artist',
+        select: 'name'
+      })
+      .sort({
+        total_streams: -1,
+        uploaded_at: -1
+      })
+      .limit(limit);
+
+    res.json({ results });
+
   } catch (err) {
     console.error('SEARCH ERROR:', err);
-    res.status(500).json({
-      error: 'Search failed',
-    });
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 module.exports = router;
