@@ -942,4 +942,43 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ error: 'Search failed' });
   }
 });
+router.get('/trending', async (req, res) => {
+  try {
+    const limit = Number(req.query.limit) || 10;
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const trending = await Stream.aggregate([
+      {
+        $match: {
+          created_at: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: "$track",
+          score: { $sum: "$duration" }
+        }
+      },
+      { $sort: { score: -1 } },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "tracks",
+          localField: "_id",
+          foreignField: "_id",
+          as: "track"
+        }
+      },
+      { $unwind: "$track" }
+    ]);
+
+    res.json({ tracks: trending.map(t => t.track) });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Trending failed' });
+  }
+});
 module.exports = router;
