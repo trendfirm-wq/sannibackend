@@ -7,6 +7,7 @@ const Comment = require('../models/Comment');
 router.get('/', async (req, res) => {
   try {
     const comments = await Comment.find()
+      .populate('trackId', 'title artist_name cover_image')
       .sort({ createdAt: -1 });
 
     res.json(comments);
@@ -14,12 +15,12 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
 
 // ✅ GET COMMENTS FOR A TRACK
 router.get('/:trackId', async (req, res) => {
   try {
     const comments = await Comment.find({ trackId: req.params.trackId })
+      .populate('trackId', 'title artist_name cover_image')
       .sort({ createdAt: -1 });
 
     res.json(comments);
@@ -27,7 +28,6 @@ router.get('/:trackId', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
 
 // ✅ POST COMMENT
 router.post('/', async (req, res) => {
