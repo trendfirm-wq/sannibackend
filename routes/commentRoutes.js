@@ -1,23 +1,69 @@
 const express = require('express');
 const router = express.Router();
+const Comment = require('../models/Comment');
 
-const {
-  addComment,
-  getComments,
-  deleteComment,
-  likeComment,
-} = require('../controllers/commentController');
 
-// GET comments for a track
-router.get('/:trackId', getComments);
+// ✅ GET ALL COMMENTS (NEW - for CommentsScreen)
+router.get('/', async (req, res) => {
+  try {
+    const comments = await Comment.find()
+      .sort({ createdAt: -1 });
 
-// POST comment
-router.post('/', addComment);
+    res.json(comments);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
-// LIKE comment
-router.post('/like/:id', likeComment);
 
-// DELETE comment
-router.delete('/:id', deleteComment);
+// ✅ GET COMMENTS FOR A TRACK
+router.get('/:trackId', async (req, res) => {
+  try {
+    const comments = await Comment.find({ trackId: req.params.trackId })
+      .sort({ createdAt: -1 });
+
+    res.json(comments);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+// ✅ POST COMMENT
+router.post('/', async (req, res) => {
+  try {
+    const { trackId, userId, username, text } = req.body;
+
+    if (!trackId || !userId || !text) {
+      return res.status(400).json({
+        message: 'Missing required fields'
+      });
+    }
+
+    const comment = new Comment({
+      trackId,
+      userId,
+      username,
+      text,
+    });
+
+    const saved = await comment.save();
+    res.json(saved);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+// ❌ DELETE COMMENT
+router.delete('/:id', async (req, res) => {
+  try {
+    await Comment.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 module.exports = router;
