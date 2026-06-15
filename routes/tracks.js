@@ -954,4 +954,16 @@ q.toLowerCase()
     });
   }
 });
+router.post('/sponsors', async (req, res) => {
+  try {
+    const sponsor = await Sponsor.create(req.body);
+    res.json(sponsor);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+router.get('/sponsors', async (req, res) => {
+  const sponsors = await Sponsor.find().sort({ createdAt: -1 });
+  res.json(sponsors);
+});
 module.exports = router;
