@@ -131,29 +131,26 @@ router.post('/sponsor-callback', async (req, res) => {
       status === 'cancelled';
 
     if (isSuccess) {
-      sponsor.status = 'completed';
-      await sponsor.save();
+  sponsor.status = 'completed';
+  await sponsor.save();
 
-      if (user) {
-        user.sponsor_payment_status = 'completed';
-        await user.save();
-      }
+  await User.findByIdAndUpdate(sponsor.user, {
+    sponsor_payment_status: 'completed',
+  });
 
-      return res.json({ success: true, message: 'Payment successful' });
-    }
+  return res.json({ success: true });
+}
 
-    if (isFailed) {
-      sponsor.status = 'failed';
-      await sponsor.save();
+  if (isFailed) {
+  sponsor.status = 'failed';
+  await sponsor.save();
 
-      if (user) {
-        user.sponsor_payment_status = 'failed';
-        await user.save();
-      }
+  await User.findByIdAndUpdate(sponsor.user, {
+    sponsor_payment_status: 'failed',
+  });
 
-      return res.json({ success: false, message: 'Payment failed' });
-    }
-
+  return res.json({ success: false });
+}
     sponsor.status = 'pending';
     await sponsor.save();
 
